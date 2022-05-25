@@ -4,6 +4,8 @@ This little project allows you to use your Nanoleaf panels with ArtNet. Each pan
 
 I am using [SoundSwitch](https://www.soundswitch.com/) for my usecase. The nanoleafapi module is there because the PR is not merged yet which activates the extControl mode.
 
+This is all based on the works of lightguru Domas (@dzelionis / https://www.linkedin.com/in/dzelionis) !
+
 # Requirements
 
 - requests
