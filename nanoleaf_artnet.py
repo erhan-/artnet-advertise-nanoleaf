@@ -2,7 +2,6 @@
 # All major work by lightguru Domas (@dzelionis / https://www.linkedin.com/in/dzelionis) 
 #
 
-
 import sys
 import time
 from socket import (socket, inet_aton, AF_INET, SOL_SOCKET, SOCK_DGRAM, SO_BROADCAST, SO_REUSEADDR)
@@ -10,7 +9,6 @@ from struct import unpack, pack_into
 import random
 import threading
 from nanoleafapi import Nanoleaf
-
 
 UDP_IP = "192.168.52.55"
 UDP_PORT = 6454 #0x1936 # Art-net is supposed to only use this port
@@ -219,50 +217,36 @@ class ArtnetPacket:
         if packet.op_code == ArtnetPacket.POLL:
             print("received POLL packet, sending advertisement...")
             self.send_pollreply(self.pollreplay(UDP_IP))
-            return None
+        
 
-        if packet.op_code != ArtnetPacket.OP_OUTPUT:
-            return None
-  
-        (packet.op_code, packet.ver, packet.sequence, packet.physical,
-            packet.universe, packet.length) = unpack('!HHBBHH', raw_data[8:18])
-  
-        (packet.universe,) = unpack('<H', raw_data[14:16])
-  
-        (packet.data,) = unpack(
-            '{0}s'.format(int(packet.length)),
-            raw_data[18:18+int(packet.length)])
-
-        return packet
+        elif packet.op_code == ArtnetPacket.OP_OUTPUT:  
+            (packet.op_code, packet.ver, packet.sequence, packet.physical,
+                packet.universe, packet.length) = unpack('!HHBBHH', raw_data[8:18])
+    
+            (packet.universe,) = unpack('<H', raw_data[14:16])
+    
+            (packet.data,) = unpack(
+                '{0}s'.format(int(packet.length)),
+                raw_data[18:18+int(packet.length)])
+            nanoleaf.send_nanoleaf_data(packet.data)
+            
 
 a = ArtnetPacket()
 a.init_socket()
 sock = a.sock
 
 def artnet_receiver(UNIV=None, callBack=None):
-
-    datas = []
-    adata = {}
+    sequence = 0
     while True:
         try:
             data, addr = sock.recvfrom(1024)
-            packet = a.unpack_raw_artnet_packet(data)
-            if packet.universe != 0:
+            (sequence_in) = unpack('B', data[12:13])
+            if sequence_in == sequence:
                 continue
- 
-            if packet != None and UNIV != None:
-                print("Sequence=%i universe=%i"%(packet.sequence,packet.universe))
-                if packet.universe not in adata.keys():
-                    adata[packet.universe] = []
-                if packet.universe == UNIV:
-                    if callBack is not None:
-                        callBack(packet.data)
-
-                while len(datas) < packet.universe + 1:
-                    print("adding new universe %i"%(packet.universe))
-                    datas.append('')
-
-            time.sleep(0.05)
+            sequence = sequence_in
+            
+            processing_thread = threading.Thread(target=a.unpack_raw_artnet_packet, args=(data,))
+            processing_thread.start()
 
         except KeyboardInterrupt:
             pass

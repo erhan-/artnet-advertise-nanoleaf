@@ -23,8 +23,10 @@ NANOLEAF_IP = "192.168.52.56" # This is the IP of your nanoleaf
 
 # Known bugs
 
-- lag of 1 bar.
+- You tell me
 
 # Todo
 
 - Write documentation
+- Dockerfile, docker-compose
+- configuration via json file
